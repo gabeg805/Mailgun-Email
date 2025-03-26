@@ -26,6 +26,11 @@ EMAIL_API_KEY=
 EMAIL_API_DOMAIN=
 
 ##
+# Attachment for the email.
+##
+MSG_ATTACHMENT=
+
+##
 # Body of the message.
 ##
 MSG_BODY=
@@ -56,6 +61,11 @@ EXIT_EMAIL_FILE_NOT_FOUND=10
 EXIT_EMAIL_INVALID_TO_ADDR=11
 
 ##
+# Exit status when the attachment file does not exist.
+##
+EXIT_EMAIL_INVALID_ATTACHMENT=12
+
+##
 # Send an email
 ##
 main()
@@ -68,8 +78,8 @@ main()
 	fi
 
 	# Options
-	local short="hf:t:s:b:"
-	local long="help,from:,to:,subject:,body:"
+	local short="hf:t:s:b:a:"
+	local long="help,from:,to:,subject:,body:,attachment:"
 	local args=
 
 	# Parse options
@@ -87,6 +97,17 @@ main()
 			-h|--help)
 				usage
 				return 0
+				;;
+
+			-a|--attachment)
+				shift
+				MSG_ATTACHMENT="${1}"
+
+				if [ ! -f "${1}" ]
+				then
+					echo "Error: File path to attachment does not exist: ${1}" 1>&2
+					return ${EXIT_EMAIL_INVALID_ATTACHMENT}
+				fi
 				;;
 
 			-b|--body)
@@ -141,6 +162,9 @@ usage()
 	echo "	  -h, --help"
 	echo "		  Print program usage."
 	echo 
+	echo "	  -a, --attachment=<path>"
+	echo "		  Path of file to attach to the message."
+	echo 
 	echo "	  -b, --body=<text>"
 	echo "		  Body of the message."
 	echo 
@@ -182,7 +206,15 @@ send_email()
 	# Set the FROM line if not specified
 	if [ -z "${MSG_FROM}" ]
 	then
-		MSG_FROM="Gabe G <gabe@${EMAIL_API_DOMAIN}>"
+		MSG_FROM="$(hostname) <$(hostname)@${EMAIL_API_DOMAIN}>"
+	fi
+
+	# Determine whether to add an attachment or not
+	local attachment=
+
+	if [ -n "${MSG_ATTACHMENT}" ]
+	then
+		attachment="-F attachment=@\"${MSG_ATTACHMENT}\""
 	fi
 
 	# Send an email
@@ -192,7 +224,8 @@ send_email()
 		-F from="${MSG_FROM}" \
 		-F to="${MSG_TO}" \
 		-F subject="${MSG_SUBJECT}" \
-		-F text="${MSG_BODY}"
+		-F text="${MSG_BODY}" \
+		${attachment}
 }
 
 ##
