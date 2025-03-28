@@ -41,6 +41,11 @@ MSG_BODY=
 MSG_FROM=
 
 ##
+# Message with an inline attachment.
+##
+MSG_INLINE_ATTACHMENT=
+
+##
 # Subject of the message.
 ##
 MSG_SUBJECT=
@@ -78,8 +83,8 @@ main()
 	fi
 
 	# Options
-	local short="hf:t:s:b:a:"
-	local long="help,from:,to:,subject:,body:,attachment:"
+	local short="hf:t:s:b:a:I:"
+	local long="help,from:,to:,subject:,body:,attachment:,inline:"
 	local args=
 
 	# Parse options
@@ -118,6 +123,11 @@ main()
 			-f|--from)
 				shift
 				MSG_FROM="${1}"
+				;;
+
+			-I|--inline)
+				shift
+				MSG_INLINE_ATTACHMENT="${1}"
 				;;
 
 			-s|--subject)
@@ -171,6 +181,9 @@ usage()
 	echo "	  -f, --from=<name>"
 	echo "		  Name of the person the email is sent from."
 	echo 
+	echo "	  -I, --inline=<attachment>"
+	echo "		  Message with an inline attachment."
+	echo 
 	echo "	  -s, --subject=<text>"
 	echo "		  Subject of the message."
 	echo 
@@ -203,6 +216,8 @@ check_email_api_files()
 ##
 send_email()
 {
+	local attachment=
+
 	# Set the FROM line if not specified
 	if [ -z "${MSG_FROM}" ]
 	then
@@ -210,11 +225,11 @@ send_email()
 	fi
 
 	# Determine whether to add an attachment or not
-	local attachment=
-
 	if [ -n "${MSG_ATTACHMENT}" ]
 	then
 		attachment="-F attachment=@\"${MSG_ATTACHMENT}\""
+	elif [ -n "${MSG_INLINE_ATTACHMENT}" ]
+		attachment="-F inline=@\"${MSG_ATTACHMENT}\" --form-string html='<html><body><p>Hello <img src=\"cid:${MSG_ATTACHMENT}\"/></p></body></html>'"
 	fi
 
 	# Send an email
