@@ -224,12 +224,25 @@ send_email()
 		MSG_FROM="$(hostname) <$(hostname)@${EMAIL_API_DOMAIN}>"
 	fi
 
-	# Determine whether to add an attachment or not
+	# Add an attachment
 	if [ -n "${MSG_ATTACHMENT}" ]
 	then
 		attachment="-F attachment=@\"${MSG_ATTACHMENT}\""
+
+	# Add inline attachment
 	elif [ -n "${MSG_INLINE_ATTACHMENT}" ]
-		attachment="-F inline=@\"${MSG_ATTACHMENT}\" --form-string html='<html><body><p>Hello <img src=\"cid:${MSG_ATTACHMENT}\"/></p></body></html>'"
+	then
+		# Send an email
+		curl -s \
+			--user "api:${EMAIL_API_KEY}" \
+			"https://api.mailgun.net/v3/${EMAIL_API_DOMAIN}/messages" \
+			-F from="${MSG_FROM}" \
+			-F to="${MSG_TO}" \
+			-F subject="${MSG_SUBJECT}" \
+			-F inline=@\"${MSG_INLINE_ATTACHMENT}\" \
+			--form-string html="<html><body><p>Hello <img src=\"cid:$(basename ${MSG_INLINE_ATTACHMENT})\"/></p></body></html>"
+
+		return $?
 	fi
 
 	# Send an email
